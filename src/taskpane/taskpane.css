@@ -5,21 +5,15 @@ html, body {
   padding: 0;
 }
 
-body {
-  font-family: Arial, sans-serif;
-  font-size: 14px;
-}
-
 header {
-  padding: 10px;
+  padding: 20px;
   background-color: #f3f2f1;
   border-bottom: 1px solid #e1e1e1;
   text-align: center;
 }
 
 main {
-  padding: 10px;
-  width: 250px; /* Keep width to 250px */
+  padding: 20px;
 }
 
 button {
@@ -28,18 +22,21 @@ button {
   border: none;
   padding: 10px 20px;
   cursor: pointer;
-  width: 100%; /* Full width button */
 }
 
 button:hover {
   background-color: #005a9e;
 }
 
-#extractedData {
-  margin-top: 15px;
+pre {
   background-color: #f3f2f1;
   padding: 10px;
   border: 1px solid #e1e1e1;
-  word-wrap: break-word;
-  white-space: pre-wrap;
+  overflow: auto;
+}
+
+#extractedData, #contactInfo {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #333;
 }
