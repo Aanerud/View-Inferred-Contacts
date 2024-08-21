@@ -129,11 +129,11 @@ function createVCard(contactInfoRaw) {
             return "No contact information found.";
         }
 
-        const contactInfoData = JSON.parse(contactInfoRaw);
-        
-        // Ensure the structure matches what we expect
-        if (!Array.isArray(contactInfoData) || !contactInfoData[0] || !contactInfoData[0].entities) {
-            throw new Error("Unexpected structure in ContactInformation data.");
+        let contactInfoData = JSON.parse(contactInfoRaw);
+
+        // Check if the value itself is a JSON string and needs further parsing
+        if (typeof contactInfoData[0].entities[0].value === "string") {
+            contactInfoData[0].entities[0].value = JSON.parse(contactInfoData[0].entities[0].value);
         }
 
         let vCard = "";
@@ -141,17 +141,15 @@ function createVCard(contactInfoRaw) {
         // Iterate over the entities to extract the ContactInformation
         contactInfoData[0].entities.forEach(entity => {
             if (entity.value && entity.value.ContactInformation && entity.value.ContactInformation.length > 0) {
-                const contact = entity.value.ContactInformation[0]; // Assuming we are interested in the first contact only
+                entity.value.ContactInformation.forEach(contact => {
+                    const name = contact.Name && contact.Name.Value ? contact.Name.Value : "Unknown";
+                    const firstName = contact.Name && contact.Name.FirstName ? contact.Name.FirstName : "";
+                    const lastName = contact.Name && contact.Name.LastName ? contact.Name.LastName : "";
+                    const role = contact.Role || "No role specified";
+                    const email = contact.EmailAddress && contact.EmailAddress.length > 0 ? contact.EmailAddress.join(', ') : "No email";
+                    const phone = contact.PhoneNumber && contact.PhoneNumber.length > 0 ? contact.PhoneNumber.map(phone => phone.Value).join(', ') : "No phone number";
 
-                // Ensure the required fields are available before accessing them
-                const name = contact.Name && contact.Name.Value ? contact.Name.Value : "Unknown";
-                const firstName = contact.Name && contact.Name.FirstName ? contact.Name.FirstName : "";
-                const lastName = contact.Name && contact.Name.LastName ? contact.Name.LastName : "";
-                const role = contact.Role || "No role specified";
-                const email = contact.EmailAddress && contact.EmailAddress.length > 0 ? contact.EmailAddress.join(', ') : "No email";
-                const phone = contact.PhoneNumber && contact.PhoneNumber.length > 0 ? contact.PhoneNumber.map(phone => phone.Value).join(', ') : "No phone number";
-
-                vCard += `
+                    vCard += `
 BEGIN:VCARD
 VERSION:3.0
 FN:${name}
@@ -161,6 +159,7 @@ EMAIL:${email}
 TEL:${phone}
 END:VCARD
 `;
+                });
             }
         });
 
@@ -170,3 +169,4 @@ END:VCARD
         return "Error parsing contact information.";
     }
 }
+
