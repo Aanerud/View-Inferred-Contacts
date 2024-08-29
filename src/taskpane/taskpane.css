@@ -3,13 +3,8 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-}
-
-header {
-  padding: 20px;
-  background-color: #f3f2f1;
-  border-bottom: 1px solid #e1e1e1;
-  text-align: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9f9f9;
 }
 
 main {
@@ -22,6 +17,9 @@ button {
   border: none;
   padding: 10px 20px;
   cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 20px;
+  border-radius: 4px;
 }
 
 button:hover {
@@ -33,10 +31,54 @@ pre {
   padding: 10px;
   border: 1px solid #e1e1e1;
   overflow: auto;
+  margin-top: 20px;
+  font-size: 12px;
 }
 
-#extractedData, #contactInfo {
+#extractedData, #contactInfo, #extractedDataOutput, #scalableExtractionClassifierOutput, #vCardOutput {
   margin-top: 10px;
   font-size: 14px;
   color: #333;
+}
+
+#extractedDataOutput p,
+#extractedData p,
+#scalableExtractionClassifierOutput p {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #666;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+th, td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #f3f2f1;
+  font-weight: bold;
+}
+
+td {
+  background-color: #ffffff;
+}
+
+h2 {
+  font-size: 16px;
+  color: #0078d4;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
 }

@@ -14,18 +14,24 @@
 </head>
 
 <body class="ms-font-m">
-    <header>
-        <h1>Extracted Data</h1>
-    </header>
     <main id="app-body" style="display: none;">
         <button id="run">Get extracted data</button>
-        <div id="extractedData"></div>
+        <div id="extractedData">
+            <h2>Properties:</h2>
+            <p><strong>EntityExtraction/HasTask:</strong> Indicates if the email contains a task. Useful for tracking tasks across other applications.</p>
+            <p><strong>EntityExtraction/ContactInformation:</strong> Contains extracted contact information if detected. This will be displayed as a vCard.</p>
+            <p><strong>EntityExtraction/ScalableExtractionClassifier:</strong> Pre-filter score for detecting contact information. If above 0.5, the contact extraction process runs.</p>
+            <p><strong>EntityExtraction/IsM2H:</strong> Identifies if the email is machine-generated, helping to decide if extraction should proceed.</p>
+        </div>
+        <div id="extractedDataOutput"></div>
+        <div id="scalableExtractionClassifierOutput" style="margin-top: 20px;"></div>
         <div id="vCardOutput" style="margin-top: 20px;"></div>
+        <!-- Ensure the debug log element exists -->
+        <pre id="debugLog"></pre>
     </main>
     <section id="sideload-msg">
         <h2>Please sideload your add-in to see the app body.</h2>
     </section>
-    <pre id="debugLog"></pre>
 </body>
 
 </html>

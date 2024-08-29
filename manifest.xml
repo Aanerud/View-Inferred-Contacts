@@ -4,12 +4,12 @@
            xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" 
            xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" 
            xsi:type="MailApp">
-  <Id>7bf1df89-5c21-4c0b-a838-0b2db035bbc3</Id>
-  <Version>1.0.0.0</Version>
+  <Id>7bf1df84-5c21-4c0b-a838-0b2db035bbc3</Id>
+  <Version>1.1.0.0</Version>
   <ProviderName>Microsoft</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="View Inferred Contacts"/>
-  <Description DefaultValue="An add-in to view Inferred Contacts using EWS."/>
+  <DisplayName DefaultValue="dev - View Inferred Contacts"/>
+  <Description DefaultValue="dev - An add-in to view Inferred Contacts using EWS."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-128.png"/>
   <SupportUrl DefaultValue="https://microsoft.com"/>
