@@ -16,11 +16,27 @@ function log(message) {
     }
 }
 
+function toggleDebugLog() {
+    const debugLogElement = document.getElementById("debugLog");
+    const toggleButton = document.getElementById("toggleDebugBtn");
+
+    if (debugLogElement.style.display === "none") {
+        debugLogElement.style.display = "block";
+        toggleButton.textContent = "Hide EWS debug output";
+    } else {
+        debugLogElement.style.display = "none";
+        toggleButton.textContent = "Show EWS debug output";
+    }
+}
+
 function getExtractedData() {
-    getIsM2HProperty(); // Call IsM2H first to determine if other properties should be shown
+    // Hide properties text when data is being loaded
+    document.getElementById("propertiesInfo").style.display = "none";
+    
+    getIsM2HProperty(); // Check IsM2H first
     getHasTaskProperty();
     getContactInformationProperty();
-    getScalableExtractionClassifierProperty();
+    getScalableExtractionClassifierProperty(); 
 }
 
 function getHasTaskProperty() {
@@ -74,13 +90,14 @@ function getHasTaskProperty() {
 
 function displayHasTaskAsTable(hasTaskValue) {
     const hasTaskHtml = `
-        <table border="0">
+        <table>
             <tbody>
                 <tr><td>HasTask</td><td>${hasTaskValue}</td></tr>
             </tbody>
         </table>
-        <p><strong>EntityExtraction/HasTask:</strong> Indicates if the email contains a task. Useful for tracking tasks across other applications.</p>`;
-    document.getElementById("extractedData").innerHTML = hasTaskHtml;
+        <p><strong>EntityExtraction/HasTask:</strong> Indicates if the email contains a task. Useful for tracking tasks across other applications.</p>
+    `;
+    document.getElementById("extractedData").innerHTML += hasTaskHtml;
 }
 
 function getContactInformationProperty() {
@@ -147,37 +164,35 @@ function createVCard(contactInfoRaw) {
 
         let contactInfoData = JSON.parse(contactInfoRaw);
 
-        // Check if the ContactInfo array exists
-        if (!contactInfoData.ContactInfo || !Array.isArray(contactInfoData.ContactInfo)) {
-            throw new Error("Unexpected structure in ContactInformation data.");
-        }
+        if (typeof contactInfoData === 'object' && contactInfoData.ContactInfo) {
+            let vCard = "";
 
-        let vCard = "";
+            contactInfoData.ContactInfo.forEach(contact => {
+                const name = contact.name && contact.name.displayName ? contact.name.displayName : "Unknown";
+                const firstName = contact.name && contact.name.additionalInfo.first ? contact.name.additionalInfo.first : "";
+                const lastName = contact.name && contact.name.additionalInfo.last ? contact.name.additionalInfo.last : "";
+                const role = contact.position && contact.position.jobTitle ? contact.position.jobTitle : "No role specified";
+                const email = contact.emails && contact.emails.length > 0 ? contact.emails.map(email => email.address).join(', ') : "No email";
+                const phone = contact.phones && contact.phones.length > 0 ? contact.phones.map(phone => phone.number).join(', ') : "No phone number";
+                const address = contact.addresses && contact.addresses.length > 0 ? contact.addresses.map(addr => addr.address).join(', ') : "No address";
 
-        // Iterate over the ContactInfo array to extract and create vCards
-        contactInfoData.ContactInfo.forEach(contact => {
-            const name = contact.name && contact.name.displayName ? contact.name.displayName : "Unknown";
-            const firstName = contact.name && contact.name.additionalInfo && contact.name.additionalInfo.first ? contact.name.additionalInfo.first : "";
-            const lastName = contact.name && contact.name.additionalInfo && contact.name.additionalInfo.last ? contact.name.additionalInfo.last : "";
-            const jobTitle = contact.position && contact.position.jobTitle ? contact.position.jobTitle : "No job title";
-            const email = contact.emails && contact.emails.length > 0 ? contact.emails.map(e => e.address).join(', ') : "No email";
-            const phone = contact.phones && contact.phones.length > 0 ? contact.phones.map(p => p.number).join(', ') : "No phone number";
-            const address = contact.addresses && contact.addresses.length > 0 ? contact.addresses.map(a => a.address).join(', ') : "No address";
-
-            vCard += `
+                vCard += `
 BEGIN:VCARD
 VERSION:3.0
 FN:${name}
 N:${lastName};${firstName};;;
-TITLE:${jobTitle}
+TITLE:${role}
 EMAIL:${email}
 TEL:${phone}
 ADR:${address}
 END:VCARD
 `;
-        });
+            });
 
-        return vCard || "No valid contact information found.";
+            return vCard || "No valid contact information found.";
+        } else {
+            throw new Error("Unexpected structure in ContactInformation data.");
+        }
     } catch (error) {
         log(`Error parsing contact information: ${error.message}`);
         return "Error parsing contact information.";
@@ -235,54 +250,37 @@ function getIsM2HProperty() {
 
 function displayIsM2HAsTable(isM2HValue) {
     const isM2HHtml = `
-        <table border="0">
+        <table>
             <tbody>
                 <tr><td>IsM2H</td><td>${isM2HValue}</td></tr>
             </tbody>
         </table>
-        <p><strong>EntityExtraction/IsM2H:</strong> Identifies if the email is machine-generated, helping to decide if extraction should proceed.</p>`;
+        <p><strong>EntityExtraction/IsM2H:</strong> Identifies if the email is machine-generated, helping to decide if extraction should proceed.</p>
+    `;
     document.getElementById("extractedDataOutput").innerHTML = isM2HHtml;
-
-    // Hide all other properties if IsM2H is "true"
-    if (isM2HValue.trim().toLowerCase() === "true") {
-        document.getElementById("extractedData").style.display = "none";
-        document.getElementById("scalableExtractionClassifierOutput").style.display = "none";
-        document.getElementById("vCardOutput").style.display = "none";
-    } else {
-        document.getElementById("extractedData").style.display = "block";
-        document.getElementById("scalableExtractionClassifierOutput").style.display = "block";
-        document.getElementById("vCardOutput").style.display = "block";
-    }
 }
 
 function displayScalableExtractionClassifierData(scalableExtractionData) {
     try {
-        // Check if data is available
         if (scalableExtractionData === "Not found" || !scalableExtractionData) {
             return "No data available.";
         }
 
-        // Parse the JSON data
         const parsedData = JSON.parse(scalableExtractionData);
 
-        // Ensure the structure matches what we expect
         if (!Array.isArray(parsedData) || !parsedData[0] || !parsedData[0].entities) {
             throw new Error("Unexpected structure in ScalableExtractionClassifier data.");
         }
 
-        // Extract the value field containing the JSON-like string
         const valueData = JSON.parse(parsedData[0].entities[0].value);
 
-        // Start building the HTML table
-        let tableHtml = "<table border='0'><thead><tr><th>Type</th><th>Score</th><th>Threshold</th></tr></thead><tbody>";
+        let tableHtml = "<table><thead><tr><th>Type</th><th>Score</th><th>Threshold</th></tr></thead><tbody>";
 
-        // Iterate over the valueData to populate the table rows
         valueData.forEach(item => {
             tableHtml += `<tr><td>${item.classification_entity_type}</td><td>${item.score}</td><td>${item.threshold}</td></tr>`;
         });
 
-        tableHtml += "</tbody></table>";
-        tableHtml += `<p><strong>EntityExtraction/ScalableExtractionClassifier:</strong> Pre-filter score for detecting contact information. If above 0.5, the contact extraction process runs.</p>`;
+        tableHtml += "</tbody></table><p><strong>EntityExtraction/ScalableExtractionClassifier:</strong> Pre-filter score for detecting contact information. If above 0.5, the contact extraction process runs.</p>";
 
         return tableHtml;
     } catch (error) {
@@ -339,11 +337,4 @@ function getScalableExtractionClassifierProperty() {
             document.getElementById("scalableExtractionClassifierOutput").textContent = "Error retrieving the ScalableExtractionClassifier property.";
         }
     });
-}
-
-// Function to handle the data after it's been extracted
-function handleScalableExtractionClassifier(response) {
-    const scalableExtractionData = extractValue(response, 'EntityExtraction/ScalableExtractionClassifier');
-    const tableHtml = displayScalableExtractionClassifierData(scalableExtractionData);
-    document.getElementById("scalableExtractionClassifierOutput").innerHTML = tableHtml;
 }
