@@ -338,3 +338,83 @@ function getScalableExtractionClassifierProperty() {
         }
     });
 }
+/* open bug dialog */
+
+function openReportBugDialog() {
+    document.getElementById("bugReportDialog").style.display = "flex";
+}
+
+function closeReportBugDialog() {
+    document.getElementById("bugReportDialog").style.display = "none";
+}
+
+// Function to extract the value of a property from the debug log
+
+function extractPropertyValueFromLog(debugLog, propertyName) {
+    const regex = new RegExp(`<t:ExtendedFieldURI[^>]+PropertyName="${propertyName}"[^>]*><t:Value>(.*?)</t:Value>`, 'i');
+    const match = debugLog.match(regex);
+    return match ? match[1] : "Not found";
+}
+
+// Function to send the bug report
+function sendBugReport() {
+    const description = document.getElementById("bugDescription").value;
+    const includeOriginalEmail = document.getElementById("includeOriginalEmail").checked;
+    const debugLog = document.getElementById("debugLog").value;
+
+    // Extract relevant data from the debug log
+    const isM2HValue = extractPropertyValueFromLog(debugLog, 'EntityExtraction/IsM2H');
+    const scalableExtractionValue = extractPropertyValueFromLog(debugLog, 'EntityExtraction/ScalableExtractionClassifier');
+    const contactInformationValue = extractPropertyValueFromLog(debugLog, 'EntityExtraction/ContactInformation');
+
+    // Placeholder for original email content
+    let originalEmailContent = "";
+    const mailbox = Office.context.mailbox;
+
+    if (includeOriginalEmail) {
+        mailbox.item.body.getAsync("html", { asyncContext: { description, debugLog } }, (result) => {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+                originalEmailContent = result.value;
+                createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, originalEmailContent);
+            } else {
+                console.error("Failed to retrieve email body:", result.error.message);
+                createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, "Could not retrieve original email content.");
+            }
+        });
+    } else {
+        createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, "");
+    }
+
+    closeReportBugDialog();
+}
+
+// Function to create a draft email with the bug report information
+function createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, originalEmailContent) {
+    const mailbox = Office.context.mailbox;
+    const subject = "Bug from plugin";
+    const toRecipients = ["sedsats@microsoft.com"];
+
+    // Format the email message with the extracted values
+    let message = `
+        <p><strong>Bug Report</strong></p>
+        <br>
+        <p><strong>Description:</strong> ${description}</p>
+        <br>
+        <p><strong>IsM2H:</strong> ${isM2HValue}</p>
+        <br>
+        <p><strong>ScalableExtractionClassifier:</strong> ${scalableExtractionValue}</p>
+        <br>
+        <p><strong>ContactInformation:</strong> ${contactInformationValue}</p>
+        <br><br>
+        ${originalEmailContent ? `<p><strong>Original Email Content:</strong></p><pre>=== ORIGINAL EMAIL BEGINS ===
+${originalEmailContent}
+=== ORIGINAL EMAIL ENDS ===</pre><br><br><br>` : ""}
+    `;
+
+    mailbox.displayNewMessageForm({
+        toRecipients,
+        subject,
+        htmlBody: message
+    });
+}
+
