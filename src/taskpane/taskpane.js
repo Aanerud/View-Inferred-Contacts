@@ -36,6 +36,7 @@ function getExtractedData() {
     getIsM2HProperty(); // Check IsM2H first
     getHasTaskProperty();
     getContactInformationProperty();
+    getContactInformationFTSLMProperty(); // New FTSLM extraction
     getScalableExtractionClassifierProperty(); 
 }
 
@@ -88,6 +89,55 @@ function getHasTaskProperty() {
     });
 }
 
+function getContactInformationFTSLMProperty() {
+    const mailbox = Office.context.mailbox;
+    const itemId = mailbox.item.itemId;
+
+    log(`Starting EWS request for ContactInformationFTSLM property with item ID: ${itemId}`);
+
+    const ewsRequest =
+        `<?xml version="1.0" encoding="utf-8"?> 
+        <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                    xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages" 
+                    xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" 
+                    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"> 
+        <soap:Header>
+            <t:RequestServerVersion Version="Exchange2013" />
+        </soap:Header>
+        <soap:Body> 
+            <m:GetItem> 
+            <m:ItemShape> 
+                <t:BaseShape>IdOnly</t:BaseShape> 
+                <t:AdditionalProperties>
+                    <t:ExtendedFieldURI PropertySetId="00062008-0000-0000-C000-000000000046" PropertyName="EntityExtraction/ContactInformationFTSLM" PropertyType="String" />
+                </t:AdditionalProperties>
+            </m:ItemShape> 
+            <m:ItemIds> 
+                <t:ItemId Id="${itemId}" /> 
+            </m:ItemIds> 
+            </m:GetItem> 
+        </soap:Body> 
+        </soap:Envelope>`;
+
+    log(`EWS Request for ContactInformationFTSLM: ${ewsRequest}`);
+
+    mailbox.makeEwsRequestAsync(ewsRequest, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+            log("EWS request for ContactInformationFTSLM succeeded.");
+            const response = asyncResult.value;
+            log(`EWS Response for ContactInformationFTSLM: ${response}`);
+
+            const contactInformationFTSLMValue = extractValue(response, 'EntityExtraction/ContactInformationFTSLM');
+            displayContactInformationFTSLMAsTable(contactInformationFTSLMValue);
+
+            log(`Extracted ContactInformationFTSLM: ${contactInformationFTSLMValue}`);
+        } else {
+            log(`EWS request for ContactInformationFTSLM failed. Error: ${asyncResult.error.message}`);
+            document.getElementById("extractedData").textContent = "Error retrieving the ContactInformationFTSLM property.";
+        }
+    });
+}
+
 function displayHasTaskAsTable(hasTaskValue) {
     const hasTaskHtml = `
         <table>
@@ -98,6 +148,18 @@ function displayHasTaskAsTable(hasTaskValue) {
         <p><strong>EntityExtraction/HasTask:</strong> Indicates if the email contains a task. Useful for tracking tasks across other applications.</p>
     `;
     document.getElementById("extractedData").innerHTML += hasTaskHtml;
+}
+
+function displayContactInformationFTSLMAsTable(contactInformationFTSLMValue) {
+    const contactInformationFTSLMHtml = `
+        <table>
+            <tbody>
+                <tr><td>ContactInformationFTSLM</td><td>${contactInformationFTSLMValue}</td></tr>
+            </tbody>
+        </table>
+        <p><strong>EntityExtraction/ContactInformationFTSLM:</strong> This contains fine-tuned contact information data for extraction testing purposes.</p>
+    `;
+    document.getElementById("extractedData").innerHTML += contactInformationFTSLMHtml;
 }
 
 function getContactInformationProperty() {
@@ -362,12 +424,11 @@ function sendBugReport() {
     const includeOriginalEmail = document.getElementById("includeOriginalEmail").checked;
     const debugLog = document.getElementById("debugLog").value;
 
-    // Extract relevant data from the debug log
     const isM2HValue = extractPropertyValueFromLog(debugLog, 'EntityExtraction/IsM2H');
     const scalableExtractionValue = extractPropertyValueFromLog(debugLog, 'EntityExtraction/ScalableExtractionClassifier');
     const contactInformationValue = extractPropertyValueFromLog(debugLog, 'EntityExtraction/ContactInformation');
+    const contactInformationFTSLMValue = extractPropertyValueFromLog(debugLog, 'EntityExtraction/ContactInformationFTSLM'); // New property
 
-    // Placeholder for original email content
     let originalEmailContent = "";
     const mailbox = Office.context.mailbox;
 
@@ -375,26 +436,25 @@ function sendBugReport() {
         mailbox.item.body.getAsync("html", { asyncContext: { description, debugLog } }, (result) => {
             if (result.status === Office.AsyncResultStatus.Succeeded) {
                 originalEmailContent = result.value;
-                createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, originalEmailContent);
+                createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, contactInformationFTSLMValue, originalEmailContent);
             } else {
                 console.error("Failed to retrieve email body:", result.error.message);
-                createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, "Could not retrieve original email content.");
+                createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, contactInformationFTSLMValue, "Could not retrieve original email content.");
             }
         });
     } else {
-        createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, "");
+        createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, contactInformationFTSLMValue, "");
     }
 
     closeReportBugDialog();
 }
 
 // Function to create a draft email with the bug report information
-function createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, originalEmailContent) {
+function createDraftEmail(description, isM2HValue, scalableExtractionValue, contactInformationValue, contactInformationFTSLMValue, originalEmailContent) {
     const mailbox = Office.context.mailbox;
     const subject = "Bug from plugin";
     const toRecipients = ["sedsats@microsoft.com"];
 
-    // Format the email message with the extracted values
     let message = `
         <p><strong>Bug Report</strong></p>
         <br>
@@ -405,6 +465,8 @@ function createDraftEmail(description, isM2HValue, scalableExtractionValue, cont
         <p><strong>ScalableExtractionClassifier:</strong> ${scalableExtractionValue}</p>
         <br>
         <p><strong>ContactInformation:</strong> ${contactInformationValue}</p>
+        <br>
+        <p><strong>ContactInformationFTSLM:</strong> ${contactInformationFTSLMValue}</p>
         <br><br>
         ${originalEmailContent ? `<p><strong>Original Email Content:</strong></p><pre>=== ORIGINAL EMAIL BEGINS ===
 ${originalEmailContent}
