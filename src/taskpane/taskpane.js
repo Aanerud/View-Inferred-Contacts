@@ -37,7 +37,7 @@ function getExtractedData() {
     getHasTaskProperty();
     getContactInformationProperty();
     getContactInformationFTSLMProperty(); // New FTSLM extraction
-    getScalableExtractionClassifierProperty(); 
+    getScalableExtractionClassifierRawProperty(); // Updated to new classifier name
 }
 
 function getHasTaskProperty() {
@@ -213,7 +213,7 @@ function getContactInformationProperty() {
 }
 
 function extractValue(response, propertyName) {
-    const regex = new RegExp(`<t:ExtendedFieldURI[^>]+PropertyName="${propertyName}"[^>]*><t:Value>(.*?)</t:Value>`, 'i');
+    const regex = new RegExp(`<t:ExtendedFieldURI[^>]+PropertyName=["']?${propertyName}["']?[^>]*><t:Value>(.*?)</t:Value>`, 'i');
     const match = response.match(regex);
     return match ? match[1] : "Not found";
 }
@@ -225,18 +225,18 @@ function createVCard(contactInfoRaw) {
         }
 
         let contactInfoData = JSON.parse(contactInfoRaw);
-
+        
         if (typeof contactInfoData === 'object' && contactInfoData.ContactInfo) {
             let vCard = "";
 
             contactInfoData.ContactInfo.forEach(contact => {
-                const name = contact.name && contact.name.displayName ? contact.name.displayName : "Unknown";
-                const firstName = contact.name && contact.name.additionalInfo.first ? contact.name.additionalInfo.first : "";
-                const lastName = contact.name && contact.name.additionalInfo.last ? contact.name.additionalInfo.last : "";
-                const role = contact.position && contact.position.jobTitle ? contact.position.jobTitle : "No role specified";
-                const email = contact.emails && contact.emails.length > 0 ? contact.emails.map(email => email.address).join(', ') : "No email";
-                const phone = contact.phones && contact.phones.length > 0 ? contact.phones.map(phone => phone.number).join(', ') : "No phone number";
-                const address = contact.addresses && contact.addresses.length > 0 ? contact.addresses.map(addr => addr.address).join(', ') : "No address";
+                const name = contact.Name?.DisplayName || "Unknown";
+                const firstName = contact.Name?.AdditionalInfo?.First || "";
+                const lastName = contact.Name?.AdditionalInfo?.Last || "";
+                const role = contact.Position?.JobTitle || "No role specified";
+                const email = contact.Emails?.map(email => email.Address).join(', ') || "No email";
+                const phone = contact.Phones?.map(phone => phone.Number).join(', ') || "No phone number";
+                const address = contact.Addresses?.map(addr => addr.AddressValue).join(', ') || "No address";
 
                 vCard += `
 BEGIN:VCARD
@@ -330,19 +330,17 @@ function displayScalableExtractionClassifierData(scalableExtractionData) {
 
         const parsedData = JSON.parse(scalableExtractionData);
 
-        if (!Array.isArray(parsedData) || !parsedData[0] || !parsedData[0].entities) {
+        if (!Array.isArray(parsedData.ClassifierResponses)) {
             throw new Error("Unexpected structure in ScalableExtractionClassifier data.");
         }
 
-        const valueData = JSON.parse(parsedData[0].entities[0].value);
+        let tableHtml = "<table><thead><tr><th>Entity</th><th>Score</th><th>Threshold</th></tr></thead><tbody>";
 
-        let tableHtml = "<table><thead><tr><th>Type</th><th>Score</th><th>Threshold</th></tr></thead><tbody>";
-
-        valueData.forEach(item => {
-            tableHtml += `<tr><td>${item.classification_entity_type}</td><td>${item.score}</td><td>${item.threshold}</td></tr>`;
+        parsedData.ClassifierResponses.forEach(item => {
+            tableHtml += `<tr><td>${item.entity}</td><td>${item.score}</td><td>${item.threshold}</td></tr>`;
         });
 
-        tableHtml += "</tbody></table><p><strong>EntityExtraction/ScalableExtractionClassifier:</strong> Pre-filter score for detecting contact information. If above 0.5, the contact extraction process runs.</p>";
+        tableHtml += "</tbody></table><p><strong>EntityExtraction/ScalableExtractionClassifierRaw1.0:</strong> Pre-filter score for detecting contact information.</p>";
 
         return tableHtml;
     } catch (error) {
@@ -355,7 +353,7 @@ function getScalableExtractionClassifierProperty() {
     const mailbox = Office.context.mailbox;
     const itemId = mailbox.item.itemId;
 
-    log(`Starting EWS request for ScalableExtractionClassifier property with item ID: ${itemId}`);
+    log(`Starting EWS request for ScalableExtractionClassifierRaw1.0 property with item ID: ${itemId}`);
 
     const ewsRequest =
         `<?xml version="1.0" encoding="utf-8"?> 
@@ -371,7 +369,7 @@ function getScalableExtractionClassifierProperty() {
             <m:ItemShape> 
                 <t:BaseShape>IdOnly</t:BaseShape> 
                 <t:AdditionalProperties>
-                    <t:ExtendedFieldURI PropertySetId="00062008-0000-0000-C000-000000000046" PropertyName="EntityExtraction/ScalableExtractionClassifier" PropertyType="String" />
+                    <t:ExtendedFieldURI PropertySetId="00062008-0000-0000-C000-000000000046" PropertyName="EntityExtraction/ScalableExtractionClassifierRaw1.0" PropertyType="String" />
                 </t:AdditionalProperties>
             </m:ItemShape> 
             <m:ItemIds> 
@@ -381,22 +379,22 @@ function getScalableExtractionClassifierProperty() {
         </soap:Body> 
         </soap:Envelope>`;
 
-    log(`EWS Request for ScalableExtractionClassifier: ${ewsRequest}`);
+    log(`EWS Request for ScalableExtractionClassifierRaw1.0: ${ewsRequest}`);
 
     mailbox.makeEwsRequestAsync(ewsRequest, (asyncResult) => {
         if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-            log("EWS request for ScalableExtractionClassifier succeeded.");
+            log("EWS request for ScalableExtractionClassifierRaw1.0 succeeded.");
             const response = asyncResult.value;
-            log(`EWS Response for ScalableExtractionClassifier: ${response}`);
+            log(`EWS Response for ScalableExtractionClassifierRaw1.0: ${response}`);
 
-            const scalableExtractionData = extractValue(response, 'EntityExtraction/ScalableExtractionClassifier');
+            const scalableExtractionData = extractValue(response, 'EntityExtraction/ScalableExtractionClassifierRaw1.0');
             const tableHtml = displayScalableExtractionClassifierData(scalableExtractionData);
             document.getElementById("scalableExtractionClassifierOutput").innerHTML = tableHtml;
 
-            log(`Extracted ScalableExtractionClassifier data: ${scalableExtractionData}`);
+            log(`Extracted ScalableExtractionClassifierRaw1.0 data: ${scalableExtractionData}`);
         } else {
-            log(`EWS request for ScalableExtractionClassifier failed. Error: ${asyncResult.error.message}`);
-            document.getElementById("scalableExtractionClassifierOutput").textContent = "Error retrieving the ScalableExtractionClassifier property.";
+            log(`EWS request for ScalableExtractionClassifierRaw1.0 failed. Error: ${asyncResult.error.message}`);
+            document.getElementById("scalableExtractionClassifierOutput").textContent = "Error retrieving the ScalableExtractionClassifierRaw1.0 property.";
         }
     });
 }
