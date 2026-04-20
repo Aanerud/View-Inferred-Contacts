@@ -27,7 +27,7 @@
     "office-addin-debugging": "^5.1.4",
     "office-addin-dev-certs": "^1.13.3",
     "office-addin-manifest": "^1.13.4",
-    "webpack": "^5.90.3",
+    "webpack": "^5.98.0",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "5.0.3"
   },
